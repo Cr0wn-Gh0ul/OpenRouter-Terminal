@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x, 24.x]
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Type check
+        run: npx tsc --noEmit
+      
+      - name: Build ESM
+        run: npm run build
+      
+      - name: Build CJS
+        run: npm run build:cjs
+
+  build-sea-linux:
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build CJS bundle
+        run: npm run build:cjs
+      
+      - name: Build SEA in Docker
+        run: |
+          mkdir -p bin
+          docker run --rm --platform linux/amd64 \
+            -v "$PWD":/app \
+            -w /app \
+            node:22-bookworm-slim \
+            sh -c "node --experimental-sea-config sea-config.json && \
+                   cp \$(command -v node) /app/bin/openrouter-linux-x64 && \
+                   npx -y postject /app/bin/openrouter-linux-x64 NODE_SEA_BLOB sea-prep.blob \
+                       --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 && \
+                   chmod +x /app/bin/openrouter-linux-x64"
+      
+      - name: Test executable
+        run: |
+          ./bin/openrouter-linux-x64 --version
+          ./bin/openrouter-linux-x64 --help
+
+  build-sea-macos:
+    runs-on: macos-15
+    needs: build
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build SEA
+        run: npm run build:sea
+      
+      - name: Code sign
+        run: codesign --sign - --force bin/openrouter-*
+      
+      - name: Test executable
+        run: |
+          chmod +x bin/openrouter-*
+          ./bin/openrouter-* --version
+          ./bin/openrouter-* --help
