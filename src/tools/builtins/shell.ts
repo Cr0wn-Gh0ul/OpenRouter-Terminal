@@ -101,7 +101,7 @@ function getShellConfig(): { shell: string; shellFlag: string } {
     return { shell: '/bin/bash', shellFlag: '-c' };
 }
 
-interface ShellArgs {
+interface _ShellArgs {
     command: string;
     cwd?: string;
     timeout?: number;

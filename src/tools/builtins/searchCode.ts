@@ -185,7 +185,7 @@ export const searchCodeTool: ToolDefinition = {
             let regex: RegExp;
             try {
                 regex = new RegExp(pattern, caseSensitive ? 'g' : 'gi');
-            } catch (e) {
+            } catch {
                 return `Error: Invalid regex pattern: ${pattern}`;
             }
 

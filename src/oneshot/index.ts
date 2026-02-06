@@ -16,7 +16,8 @@ export async function oneshotMode(
     message: string,
     conversationHistory: Message[],
     model: string,
-    apiKey: string
+    apiKey: string,
+    maxIterations: number = 10
 ): Promise<void> {
     try {
         await loadModelPricing(apiKey);
@@ -24,7 +25,7 @@ export async function oneshotMode(
         const contextFiles = loadContextFiles();
         const messageWithContext = buildMessageWithContext(message, contextFiles);
 
-        await streamMessage(messageWithContext, conversationHistory, model, apiKey);
+        await streamMessage(messageWithContext, conversationHistory, model, apiKey, { maxIterations });
         console.log();
     } catch (error) {
         console.error(formatError(error instanceof Error ? error.message : 'An error occurred'));

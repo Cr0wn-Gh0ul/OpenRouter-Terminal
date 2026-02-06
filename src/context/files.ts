@@ -32,3 +32,17 @@ export function isDirectory(filePath: string): boolean {
 export function resolveFilePath(filePath: string): string {
     return path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
 }
+
+export function expandGlob(pattern: string): string[] {
+    // Check if pattern contains glob characters
+    if (!/[*?[\]{}]/.test(pattern)) {
+        return [pattern];
+    }
+    
+    try {
+        const matches = fs.globSync(pattern, { cwd: process.cwd() });
+        return matches.map(m => path.resolve(process.cwd(), m));
+    } catch {
+        return [pattern];
+    }
+}

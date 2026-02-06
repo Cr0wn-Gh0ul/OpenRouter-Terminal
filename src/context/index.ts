@@ -14,4 +14,4 @@ export {
     saveContextToConfig,
     clearContext
 } from './manager';
-export { readFileContents, isDirectory, resolveFilePath } from './files';
+export { readFileContents, isDirectory, resolveFilePath, expandGlob } from './files';

@@ -7,6 +7,6 @@
  * @module core
  */
 export { initClient, getClient } from './client';
-export { streamMessage, type StreamResult } from './chat';
-export { runAgentLoop, type AgentLoopResult } from './agent';
+export { streamMessage, type StreamResult, type StreamOptions } from './chat';
+export { runAgentLoop, type AgentLoopResult, type AgentLoopOptions } from './agent';
 export { toSDKMessages } from './messages';

@@ -7,7 +7,7 @@
  * @module cli/commands
  */
 import type { CLIOptions } from '../types';
-import { readConfig, updateConfig, getConfigPath } from '../config';
+import { readConfig, updateConfig } from '../config';
 import { listTools } from '../tools';
 import { listSessions, getSessionsDir } from '../session';
 import { loadContextFiles } from '../context';

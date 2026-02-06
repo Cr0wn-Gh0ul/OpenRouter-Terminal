@@ -19,6 +19,9 @@ export function formatSize(bytes: number): string {
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
+import * as path from 'path';
+import * as os from 'os';
+
 /**
  * Expands tilde to home directory and resolves to absolute path.
  * 
@@ -26,9 +29,6 @@ export function formatSize(bytes: number): string {
  * @returns Absolute filesystem path
  */
 export function resolvePath(targetPath: string): string {
-    const path = require('path');
-    const os = require('os');
-
     if (targetPath.startsWith('~')) {
         targetPath = path.join(os.homedir(), targetPath.slice(1));
     }

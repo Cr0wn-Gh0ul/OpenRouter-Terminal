@@ -37,9 +37,10 @@ processEarlyFlags(options, config);
 processConfigFlags(options);
 
 // Resolve settings: CLI option > config file > default
-let resolvedApiKey = config.apiKey || '';
+const resolvedApiKey = config.apiKey || '';
 let resolvedModel = config.model || '';
 let resolvedSystemPrompt = config.systemPrompt || '';
+const resolvedMaxIterations = options.maxIterations ?? config.maxIterations ?? 10;
 
 // Initialize conversation history
 const conversationHistory: Message[] = [];
@@ -85,9 +86,9 @@ initClient(resolvedApiKey);
 
     console.log(chalk.green(title));
     if (options.oneshot) {
-        await oneshotMode(options.oneshot, conversationHistory, resolvedModel, resolvedApiKey);
+        await oneshotMode(options.oneshot, conversationHistory, resolvedModel, resolvedApiKey, resolvedMaxIterations);
     } else {
-        await interactiveMode(options, conversationHistory, resolvedModel, resolvedApiKey);
+        await interactiveMode(options, conversationHistory, resolvedModel, resolvedApiKey, resolvedMaxIterations);
     }
 })().catch(error => {
     console.error(chalk.red('An error occurred:'), error instanceof Error ? error.message : error);

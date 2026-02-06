@@ -6,7 +6,7 @@
  * 
  * @module interactive/handlers
  */
-import type { InteractiveState, HandlerResult, CommandHandler } from '../state';
+import type { CommandHandler } from '../state';
 
 import { handleHelp, handleClear, handleUsage, handleExit } from './general';
 import { handleShowModel, handleSetModel, handleModels } from './model';

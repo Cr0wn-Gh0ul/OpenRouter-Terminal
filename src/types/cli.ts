@@ -12,6 +12,7 @@ export interface CLIOptions {
     model?: string;
     system?: string;
     oneshot?: string;
+    maxIterations?: number;
     config?: boolean;
     tools?: boolean;
     context?: boolean;

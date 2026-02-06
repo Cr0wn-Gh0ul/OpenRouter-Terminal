@@ -21,6 +21,9 @@ export async function runRepl(state: InteractiveState): Promise<void> {
         input: process.stdin,
         output: process.stdout,
     });
+    
+    // Store in state so handlers can access it
+    state.rl = rl;
 
     // Handle Ctrl+C to abort current response instead of exiting
     rl.on('SIGINT', () => {
@@ -74,7 +77,10 @@ export async function runRepl(state: InteractiveState): Promise<void> {
                     state.conversationHistory, 
                     state.model, 
                     state.apiKey,
-                    state.abortController.signal
+                    {
+                        abortSignal: state.abortController.signal,
+                        maxIterations: state.maxIterations,
+                    }
                 );
                 
                 // Clear abort controller
@@ -106,7 +112,8 @@ export async function interactiveMode(
     options: CLIOptions,
     conversationHistory: Message[],
     model: string,
-    apiKey: string
+    apiKey: string,
+    maxIterations: number = 10
 ): Promise<void> {
     if (!options.model) {
         options.model = model;
@@ -132,6 +139,8 @@ export async function interactiveMode(
         apiKey,
         contextFiles,
         abortController: null,
+        maxIterations,
+        rl: null,
     };
 
     await runRepl(state);

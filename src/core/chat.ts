@@ -7,7 +7,7 @@
  * @module core/chat
  */
 import type { Message } from '../types';
-import { runAgentLoop, AgentLoopResult } from './agent';
+import { runAgentLoop } from './agent';
 import { trackUsage, displayMessageUsage, TokenUsage } from '../usage';
 
 export interface StreamResult {
@@ -16,12 +16,17 @@ export interface StreamResult {
     interrupted?: boolean;
 }
 
+export interface StreamOptions {
+    abortSignal?: AbortSignal;
+    maxIterations?: number;
+}
+
 export async function streamMessage(
     userMessage: string,
     conversationHistory: Message[],
     model: string,
     apiKey: string,
-    abortSignal?: AbortSignal
+    options?: StreamOptions
 ): Promise<StreamResult> {
     if (!apiKey) {
         throw new Error('No API key set. Use -k <key> to set one, or add it to config.');
@@ -33,7 +38,10 @@ export async function streamMessage(
 
     conversationHistory.push({ role: 'user', content: userMessage });
 
-    const result = await runAgentLoop(conversationHistory, model, abortSignal);
+    const result = await runAgentLoop(conversationHistory, model, {
+        abortSignal: options?.abortSignal,
+        maxIterations: options?.maxIterations,
+    });
 
     if (result.usage.totalTokens > 0) {
         const usageWithCost = trackUsage(result.usage, model);

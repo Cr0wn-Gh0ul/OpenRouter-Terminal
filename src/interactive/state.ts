@@ -6,6 +6,7 @@
  * 
  * @module interactive/state
  */
+import * as readline from 'readline';
 import type { Message, CLIOptions } from '../types';
 
 export interface InteractiveState {
@@ -15,6 +16,8 @@ export interface InteractiveState {
     apiKey: string;
     contextFiles: Map<string, string>;
     abortController: AbortController | null;
+    maxIterations: number;
+    rl: readline.Interface | null;
 }
 
 export interface HandlerResult {

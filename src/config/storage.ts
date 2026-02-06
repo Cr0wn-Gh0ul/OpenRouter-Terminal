@@ -17,6 +17,7 @@ export interface Config {
     systemPrompt?: string;
     toolPaths?: string[];
     contextPaths?: string[];
+    maxIterations?: number;
 }
 
 const CONFIG_DIR = path.join(os.homedir(), '.config', 'openrouter-terminal');

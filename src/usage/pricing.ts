@@ -9,7 +9,7 @@
 import { fetchModels } from '../models';
 import type { TokenUsage, UsageWithCost } from './types';
 
-let modelPricingCache: Map<string, { prompt: number; completion: number }> = new Map();
+const modelPricingCache: Map<string, { prompt: number; completion: number }> = new Map();
 let modelsCacheTime: number = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 

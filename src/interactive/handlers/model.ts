@@ -25,6 +25,12 @@ export async function handleSetModel(input: string, state: InteractiveState): Pr
 }
 
 export async function handleModels(_input: string, state: InteractiveState): Promise<HandlerResult> {
+    // Close the REPL readline to avoid double input during model selection
+    if (state.rl) {
+        state.rl.close();
+        state.rl = null;
+    }
+    
     const selected = await selectModel(state.apiKey);
     if (selected) {
         state.options.model = selected;

@@ -12,9 +12,9 @@ import { getClient } from './client';
 import { toSDKMessages } from './messages';
 import { getOpenRouterTools, executeTool, ToolCall } from '../tools';
 import type { TokenUsage } from '../usage';
-import { colors, formatInfo, formatMuted, formatError, formatWarning } from '../ui';
+import { formatInfo, formatMuted, formatError, formatWarning } from '../ui';
 
-const MAX_AGENT_ITERATIONS = 10;
+const DEFAULT_MAX_ITERATIONS = 10;
 
 export interface AgentLoopResult {
     response: string;
@@ -22,17 +22,24 @@ export interface AgentLoopResult {
     interrupted?: boolean;
 }
 
+export interface AgentLoopOptions {
+    abortSignal?: AbortSignal;
+    maxIterations?: number;
+}
+
 // Executes the agent loop until the model completes without tool calls
 export async function runAgentLoop(
     conversationHistory: Message[],
     model: string,
-    abortSignal?: AbortSignal
+    options?: AgentLoopOptions
 ): Promise<AgentLoopResult> {
+    const abortSignal = options?.abortSignal;
+    const maxIterations = options?.maxIterations ?? DEFAULT_MAX_ITERATIONS;
     const client = getClient();
     const tools = getOpenRouterTools();
     const hasTools = tools.length > 0;
     
-    let totalUsage: TokenUsage = {
+    const totalUsage: TokenUsage = {
         promptTokens: 0,
         completionTokens: 0,
         totalTokens: 0,
@@ -41,12 +48,20 @@ export async function runAgentLoop(
     let iteration = 0;
     let interrupted = false;
 
-    while (iteration < MAX_AGENT_ITERATIONS && !interrupted) {
+    while (iteration < maxIterations && !interrupted) {
         iteration++;
         
         if (abortSignal?.aborted) {
             interrupted = true;
             break;
+        }
+        
+        // On last iteration, disable tools to force a final text response
+        const isLastIteration = iteration === maxIterations;
+        const useTools = hasTools && !isLastIteration;
+        
+        if (isLastIteration && hasTools) {
+            console.log(formatWarning('\n[Approaching limit, requesting final response...]'));
         }
         
         // Pass abort signal to the SDK request
@@ -56,7 +71,7 @@ export async function runAgentLoop(
             model,
             messages: toSDKMessages(conversationHistory) as any,
             stream: true,
-            ...(hasTools ? { tools } : {}),
+            ...(useTools ? { tools } : {}),
         }, requestOptions);
 
         let fullResponse = '';
@@ -196,8 +211,8 @@ export async function runAgentLoop(
         }
     }
 
-    if (iteration >= MAX_AGENT_ITERATIONS && !interrupted) {
-        console.log(formatInfo(`\n[Agent reached max iterations (${MAX_AGENT_ITERATIONS})]`));
+    if (iteration >= maxIterations && !interrupted) {
+        console.log(formatInfo(`\n[Agent completed after ${maxIterations} iterations]`));
     }
 
     return { response: finalResponse, usage: totalUsage, interrupted };

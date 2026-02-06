@@ -8,7 +8,7 @@
 import type { InteractiveState, HandlerResult } from '../state';
 import { displaySessionUsage, resetSessionUsage } from '../../usage';
 import { buildSystemPrompt } from '../../config';
-import { colors, formatHeader } from '../../ui';
+import { colors } from '../../ui';
 
 export async function handleHelp(_input: string, _state: InteractiveState): Promise<HandlerResult> {
     console.log(colors.primary('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));

@@ -6,7 +6,7 @@
  * @module interactive/handlers/context
  */
 import type { InteractiveState, HandlerResult } from '../state';
-import { addFileToContext, saveContextToConfig, clearContext } from '../../context';
+import { addFileToContext, saveContextToConfig, clearContext, expandGlob } from '../../context';
 import { colors, formatInfo, formatSuccess, formatError } from '../../ui';
 
 export async function handleShowContext(_input: string, state: InteractiveState): Promise<HandlerResult> {
@@ -31,19 +31,27 @@ export async function handleContextClear(_input: string, state: InteractiveState
 
 export async function handleContextAdd(input: string, state: InteractiveState): Promise<HandlerResult> {
     const filesArg = input.slice(8).trim();
-    const filePaths = filesArg.split(/\s+/);
+    const patterns = filesArg.split(/\s+/);
     
+    // Expand globs and flatten
+    const filePaths = patterns.flatMap(pattern => expandGlob(pattern));
+    
+    let addedCount = 0;
     for (const filePath of filePaths) {
         const result = addFileToContext(filePath, state.contextFiles);
         if (result.success) {
             console.log(formatSuccess(`Added: ${filePath}`));
+            addedCount++;
         } else if (result.error === 'directory') {
             console.log(formatInfo(`Skipping directory: ${filePath}`));
         } else {
             console.log(formatError(`Failed to read: ${filePath}`));
         }
     }
-    saveContextToConfig(state.contextFiles);
+    
+    if (addedCount > 0) {
+        saveContextToConfig(state.contextFiles);
+    }
     console.log(formatInfo(`Total files in context: ${state.contextFiles.size}\n`));
     return { continue: true };
 }

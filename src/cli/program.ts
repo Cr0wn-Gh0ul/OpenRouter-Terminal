@@ -22,6 +22,7 @@ export function createProgram(): Command {
         .option('-m, --model <model>', 'Set model to use')
         .option('-p, --system <prompt>', 'Set System prompt')
         .option('-o, --oneshot <message>', 'Send a single message and exit')
+        .option('-i, --max-iterations <n>', 'Max agent iterations (default: 10)', parseInt)
         .option('-c, --config', 'Show config file')
         .option('-t, --tools', 'Show registered tools')
         .option('-x, --context', 'Show files for message context')

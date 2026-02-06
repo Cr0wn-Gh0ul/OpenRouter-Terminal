@@ -1,4 +1,4 @@
-# Dockerfile for building OpenRouterCLI SEA binaries
+# Dockerfile for building OpenRouter Terminal SEA binaries
 # 
 # The build now uses Docker's --platform flag directly:
 #   docker run --rm --platform linux/arm64 -v "$PWD":/app -w /app node:22-bookworm-slim ./scripts/build-sea.sh
