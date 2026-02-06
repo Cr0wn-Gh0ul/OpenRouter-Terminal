@@ -115,6 +115,7 @@ Options:
   -m, --model <model>      Use a specific model
   -p, --system <prompt>    Set a system prompt
   -o, --oneshot <message>  Send a single message and exit
+  -i, --iterations <n>     Max agent tool-calling iterations (default: 10)
   -c, --config             Show current configuration
   -t, --tools              List registered tools
   -x, --context            Show files in context
@@ -173,6 +174,7 @@ Type `help` in interactive mode to see all available commands:
 | Config | `config` | Show current configuration |
 | | `system <prompt>` | Set a new system prompt |
 | | `key <apikey>` | Set and save API key |
+| | `iterations [n]` | Show or set max agent iterations |
 | File Changes | `undo` | Undo the last file change |
 | | `undo <id>` | Undo a specific change by ID |
 | | `changes` | List recent file changes |

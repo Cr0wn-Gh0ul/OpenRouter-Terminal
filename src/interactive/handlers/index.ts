@@ -13,7 +13,7 @@ import { handleShowModel, handleSetModel, handleModels } from './model';
 import { handleShowContext, handleContextClear, handleContextAdd } from './context';
 import { handleListTools, handleToolsAdd } from './tools';
 import { handleListSessions, handleSave, handleLoad, handleHistory, handleBranch } from './session';
-import { handleShowConfig, handleSetSystem, handleSetKey } from './config';
+import { handleShowConfig, handleSetSystem, handleSetKey, handleIterations } from './config';
 import { handleUndo, handleChanges } from './fileChanges';
 
 export type { CommandHandler } from '../state';
@@ -53,6 +53,7 @@ export function routeCommand(input: string): CommandHandler | null {
     if (command === 'config') return handleShowConfig;
     if (command.startsWith('system ')) return handleSetSystem;
     if (command.startsWith('key ')) return handleSetKey;
+    if (command === 'iterations' || command.startsWith('iterations ')) return handleIterations;
     
     // File change commands
     if (command === 'undo' || command.startsWith('undo ')) return handleUndo;
@@ -84,6 +85,7 @@ export {
     handleShowConfig,
     handleSetSystem,
     handleSetKey,
+    handleIterations,
     handleUndo,
     handleChanges,
 };

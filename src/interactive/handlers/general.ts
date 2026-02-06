@@ -58,6 +58,7 @@ export async function handleHelp(_input: string, _state: InteractiveState): Prom
     console.log(colors.command('  config              ') + colors.description('Show current configuration'));
     console.log(colors.command('  system <prompt>     ') + colors.description('Set a new system prompt'));
     console.log(colors.command('  key <apikey>        ') + colors.description('Set and save API key'));
+    console.log(colors.command('  iterations [n]      ') + colors.description('Show or set max agent iterations'));
     console.log();
 
     console.log(colors.header('  File Changes'));
