@@ -13,13 +13,15 @@ import { trackUsage, displayMessageUsage, TokenUsage } from '../usage';
 export interface StreamResult {
     response: string;
     usage?: TokenUsage;
+    interrupted?: boolean;
 }
 
 export async function streamMessage(
     userMessage: string,
     conversationHistory: Message[],
     model: string,
-    apiKey: string
+    apiKey: string,
+    abortSignal?: AbortSignal
 ): Promise<StreamResult> {
     if (!apiKey) {
         throw new Error('No API key set. Use -k <key> to set one, or add it to config.');
@@ -31,12 +33,12 @@ export async function streamMessage(
 
     conversationHistory.push({ role: 'user', content: userMessage });
 
-    const result = await runAgentLoop(conversationHistory, model);
+    const result = await runAgentLoop(conversationHistory, model, abortSignal);
 
     if (result.usage.totalTokens > 0) {
         const usageWithCost = trackUsage(result.usage, model);
         displayMessageUsage(usageWithCost);
     }
 
-    return { response: result.response, usage: result.usage };
+    return { response: result.response, usage: result.usage, interrupted: result.interrupted };
 }

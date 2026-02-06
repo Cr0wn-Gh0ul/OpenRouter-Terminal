@@ -14,6 +14,7 @@ export interface InteractiveState {
     model: string;
     apiKey: string;
     contextFiles: Map<string, string>;
+    abortController: AbortController | null;
 }
 
 export interface HandlerResult {

@@ -33,6 +33,10 @@ export function formatInfo(message: string): string {
     return colors.secondary(message);
 }
 
+export function formatWarning(message: string): string {
+    return colors.warning(message);
+}
+
 export function formatMuted(message: string): string {
     return colors.muted(message);
 }

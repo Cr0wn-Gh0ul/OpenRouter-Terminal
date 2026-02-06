@@ -20,10 +20,11 @@ An AI-powered terminal assistant that can edit files, search codebases, and run 
 
 - **Streaming Responses** - Real-time token streaming for instant feedback
 - **Tool/Function Calling** - Extend AI capabilities with custom JavaScript tools
-- **File Editing with Undo** - AI can read, write, and edit files with diff preview and rollback
+- **File Editing with Undo** - AI can read, write, and edit files with diff preview and full rollback
+- **File Change Tracking** - All modifications are recorded with `changes` and `undo` commands
 - **Codebase Search** - Search across your project with regex support
+- **Context Management** - Attach files to provide persistent context to the AI
 - **Session Management** - Save, load, and branch conversations
-- **File Context** - Attach files to provide context to the AI
 - **Token and Cost Tracking** - Monitor usage and spending per message and session
 - **Model Browser** - Browse and select from hundreds of available models
 - **Persistent Config** - Settings saved to `~/.config/openrouter-terminal/`
@@ -240,6 +241,62 @@ export default {
 See [examples/tools/](examples/tools/) for sample tools including:
 - **get_time.js** - Get current date/time in various formats and timezones
 - **calculator.js** - Perform basic arithmetic calculations
+
+## Context Management
+
+Add files to provide context to the AI. Context files are included with every message, helping the AI understand your codebase.
+
+### Adding Context Files
+
+```bash
+# From command line
+openrouter -x                    # Show current context
+openrouter                       # Then add files in interactive mode
+```
+
+```
+# In interactive mode
+> context                        # Show files in context
+> context src/index.ts           # Add a single file
+> context src/*.ts               # Add multiple files
+> context clear                  # Clear all context files
+```
+
+### Persistent Context
+
+Context files are saved to your config and restored on restart:
+
+```json
+{
+  "contextPaths": ["/path/to/file.txt", "/path/to/another.js"]
+}
+```
+
+## File Changes and Undo
+
+All file modifications made by the AI are tracked with full undo support. Every `write_file` and `edit_file` operation is recorded so you can safely let the AI make changes.
+
+### Viewing Changes
+
+```
+> changes
+
+Recent File Changes
+──────────────────────────────────────────────────
+1. CREATE src/utils/helper.ts
+   ID: a1b2c3d4 | 2:34:15 PM
+2. EDIT   src/index.ts
+   ID: e5f6g7h8 | 2:33:42 PM
+```
+
+### Undoing Changes
+
+```
+> undo                           # Undo the most recent change
+> undo a1b2c3d4                  # Undo a specific change by ID
+```
+
+The AI can also undo changes using the `undo_change` and `list_changes` tools.
 
 ## Session Management
 

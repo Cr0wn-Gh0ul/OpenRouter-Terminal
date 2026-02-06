@@ -22,6 +22,18 @@ export async function runRepl(state: InteractiveState): Promise<void> {
         output: process.stdout,
     });
 
+    // Handle Ctrl+C to abort current response instead of exiting
+    rl.on('SIGINT', () => {
+        if (state.abortController) {
+            // Abort the current streaming response
+            state.abortController.abort();
+        } else {
+            // No active request, show hint and continue
+            console.log(formatInfo('\n(Use "exit" to quit)'));
+            process.stdout.write(getUserPrompt());
+        }
+    });
+
     const prompt = (): void => {
         rl.question(getUserPrompt(), async (input) => {
             const trimmedInput = input.trim();
@@ -53,9 +65,27 @@ export async function runRepl(state: InteractiveState): Promise<void> {
             try {
                 const messageWithContext = buildMessageWithContext(trimmedInput, state.contextFiles);
 
+                // Create abort controller for this request
+                state.abortController = new AbortController();
+                
                 process.stdout.write(getAssistantPrompt(state.options.model!));
-                await streamMessage(messageWithContext, state.conversationHistory, state.model, state.apiKey);
-                console.log('\n');
+                const result = await streamMessage(
+                    messageWithContext, 
+                    state.conversationHistory, 
+                    state.model, 
+                    state.apiKey,
+                    state.abortController.signal
+                );
+                
+                // Clear abort controller
+                state.abortController = null;
+                
+                // Only print extra newline if not interrupted
+                if (!result.interrupted) {
+                    console.log('\n');
+                } else {
+                    console.log();
+                }
 
                 if (state.options.session) {
                     const systemMsg = state.conversationHistory.find(m => m.role === 'system');
@@ -88,7 +118,7 @@ export async function interactiveMode(
     if (options.session) {
         console.log(colors.info(`Session: ${options.session} (auto-saving)`));
     }
-    console.log(formatInfo('Type "help" for commands. Use Ctrl+C to exit.\n'));
+    console.log(formatInfo('Type "help" for commands. Ctrl+C stops response, "exit" to quit.\n'));
 
     const contextFiles = loadContextFiles();
     if (contextFiles.size > 0) {
@@ -101,6 +131,7 @@ export async function interactiveMode(
         model,
         apiKey,
         contextFiles,
+        abortController: null,
     };
 
     await runRepl(state);

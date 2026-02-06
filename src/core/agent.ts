@@ -12,19 +12,21 @@ import { getClient } from './client';
 import { toSDKMessages } from './messages';
 import { getOpenRouterTools, executeTool, ToolCall } from '../tools';
 import type { TokenUsage } from '../usage';
-import { colors, formatInfo, formatMuted, formatError } from '../ui';
+import { colors, formatInfo, formatMuted, formatError, formatWarning } from '../ui';
 
 const MAX_AGENT_ITERATIONS = 10;
 
 export interface AgentLoopResult {
     response: string;
     usage: TokenUsage;
+    interrupted?: boolean;
 }
 
 // Executes the agent loop until the model completes without tool calls
 export async function runAgentLoop(
     conversationHistory: Message[],
-    model: string
+    model: string,
+    abortSignal?: AbortSignal
 ): Promise<AgentLoopResult> {
     const client = getClient();
     const tools = getOpenRouterTools();
@@ -37,59 +39,103 @@ export async function runAgentLoop(
     };
     let finalResponse = '';
     let iteration = 0;
+    let interrupted = false;
 
-    while (iteration < MAX_AGENT_ITERATIONS) {
+    while (iteration < MAX_AGENT_ITERATIONS && !interrupted) {
         iteration++;
+        
+        if (abortSignal?.aborted) {
+            interrupted = true;
+            break;
+        }
+        
+        // Pass abort signal to the SDK request
+        const requestOptions = abortSignal ? { signal: abortSignal } : undefined;
         
         const stream = await client.chat.send({
             model,
             messages: toSDKMessages(conversationHistory) as any,
             stream: true,
             ...(hasTools ? { tools } : {}),
-        });
+        }, requestOptions);
 
         let fullResponse = '';
         let toolCalls: ToolCall[] = [];
         let usage: TokenUsage | undefined;
 
-        for await (const chunk of stream) {
-            const choice = chunk.choices[0];
-            
-            const content = choice?.delta?.content;
-            if (content) {
-                process.stdout.write(content);
-                fullResponse += content;
-            }
+        try {
+            for await (const chunk of stream) {
+                if (abortSignal?.aborted) {
+                    interrupted = true;
+                    break;
+                }
+                
+                const choice = chunk.choices[0];
+                
+                const content = choice?.delta?.content;
+                if (content) {
+                    process.stdout.write(content);
+                    fullResponse += content;
+                }
 
-            const delta = choice?.delta as any;
-            if (delta?.toolCalls) {
-                for (const tc of delta.toolCalls) {
-                    const index = tc.index ?? 0;
-                    if (!toolCalls[index]) {
-                        toolCalls[index] = {
-                            id: tc.id || '',
-                            type: 'function',
-                            function: {
-                                name: tc.function?.name || '',
-                                arguments: tc.function?.arguments || '',
-                            },
-                        };
-                    } else {
-                        if (tc.id) toolCalls[index].id = tc.id;
-                        if (tc.function?.name) toolCalls[index].function.name = tc.function.name;
-                        if (tc.function?.arguments) toolCalls[index].function.arguments += tc.function.arguments;
+                const delta = choice?.delta as any;
+                if (delta?.toolCalls) {
+                    for (const tc of delta.toolCalls) {
+                        const index = tc.index ?? 0;
+                        if (!toolCalls[index]) {
+                            toolCalls[index] = {
+                                id: tc.id || '',
+                                type: 'function',
+                                function: {
+                                    name: tc.function?.name || '',
+                                    arguments: tc.function?.arguments || '',
+                                },
+                            };
+                        } else {
+                            if (tc.id) toolCalls[index].id = tc.id;
+                            if (tc.function?.name) toolCalls[index].function.name = tc.function.name;
+                            if (tc.function?.arguments) toolCalls[index].function.arguments += tc.function.arguments;
+                        }
                     }
                 }
+                
+                const chunkUsage = (chunk as any).usage;
+                if (chunkUsage) {
+                    usage = {
+                        promptTokens: chunkUsage.prompt_tokens || chunkUsage.promptTokens || 0,
+                        completionTokens: chunkUsage.completion_tokens || chunkUsage.completionTokens || 0,
+                        totalTokens: chunkUsage.total_tokens || chunkUsage.totalTokens || 0,
+                    };
+                }
             }
+        } catch (error: any) {
+            // Check if this was an abort - SDK throws RequestAbortedError
+            const isAborted = abortSignal?.aborted || 
+                error?.name === 'AbortError' || 
+                error?.name === 'RequestAbortedError' ||
+                error?.message?.toLowerCase().includes('abort');
             
-            const chunkUsage = (chunk as any).usage;
-            if (chunkUsage) {
-                usage = {
-                    promptTokens: chunkUsage.prompt_tokens || chunkUsage.promptTokens || 0,
-                    completionTokens: chunkUsage.completion_tokens || chunkUsage.completionTokens || 0,
-                    totalTokens: chunkUsage.total_tokens || chunkUsage.totalTokens || 0,
-                };
+            if (isAborted) {
+                interrupted = true;
+                // Save partial response if we have any
+                if (fullResponse) {
+                    conversationHistory.push({ role: 'assistant', content: fullResponse });
+                    finalResponse = fullResponse;
+                }
+                console.log(formatWarning('\n[Interrupted]'));
+                break;
             }
+            throw error;
+        }
+
+        if (interrupted) {
+            // Save partial response if we have any
+            if (fullResponse && !finalResponse) {
+                conversationHistory.push({ role: 'assistant', content: fullResponse });
+                finalResponse = fullResponse;
+            }
+            console.log(formatWarning('\n[Interrupted]'));
+            break;
         }
 
         if (usage) {
@@ -113,6 +159,11 @@ export async function runAgentLoop(
         } as Message);
 
         for (const tc of toolCalls) {
+            if (abortSignal?.aborted) {
+                interrupted = true;
+                break;
+            }
+            
             console.log(formatInfo(`\n[Calling tool: ${tc.function.name}]`));
             
             try {
@@ -140,12 +191,14 @@ export async function runAgentLoop(
         }
 
         // Newline before next iteration's response
-        console.log();
+        if (!interrupted) {
+            console.log();
+        }
     }
 
-    if (iteration >= MAX_AGENT_ITERATIONS) {
+    if (iteration >= MAX_AGENT_ITERATIONS && !interrupted) {
         console.log(formatInfo(`\n[Agent reached max iterations (${MAX_AGENT_ITERATIONS})]`));
     }
 
-    return { response: finalResponse, usage: totalUsage };
+    return { response: finalResponse, usage: totalUsage, interrupted };
 }
